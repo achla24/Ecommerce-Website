@@ -1,76 +1,22 @@
-// // src/pages/Cart.js
-// import React, { useState, useEffect } from "react";
-// import { getCart, removeFromCart } from "../services/api";
-
-// function Cart() {
-//   const [cart, setCart] = useState([]);
-
-//   const loadCart = async () => {
-//     try {
-//       const res = await getCart(); // api.js handles JWT automatically
-//       setCart(res.data);
-//     } catch (err) {
-//       console.error("Error fetching cart:", err);
-//     }
-//   };
-
-//   useEffect(() => {
-//     loadCart();
-//   }, []);
-
-//   const handleRemove = async (itemId) => {
-//     try {
-//       await removeFromCart(itemId); // api.js expects only itemId
-//       loadCart(); // refresh cart
-//     } catch (err) {
-//       console.error("Error removing item:", err);
-//     }
-//   };
-
-//   return (
-//     <div className="container mt-4">
-//       <h2>Your Cart</h2>
-//       {cart.length === 0 ? (
-//         <p>No items in cart</p>
-//       ) : (
-//         <ul className="list-group">
-//           {cart.map((c) => (
-//             <li
-//               key={c._id}
-//               className="list-group-item d-flex justify-content-between align-items-center"
-//             >
-//               {c.item.name} - ₹{c.item.price}
-//               <button
-//                 className="btn btn-sm btn-danger"
-//                 onClick={() => handleRemove(c.item._id)}
-//               >
-//                 Remove
-//               </button>
-//             </li>
-//           ))}
-//         </ul>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default Cart;
-
-
-
-// frontend/src/pages/Cart.js
-import React, { useState, useEffect } from "react";
+// src/pages/Cart.js
+import React, { useEffect, useMemo, useState } from "react";
 import { getCart, removeFromCart } from "../services/api";
+import { useCart } from "../context/CartContext";
 
 function Cart() {
-  const [items, setItems] = useState([]); // rename to items for clarity
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { refreshCartCount } = useCart();
 
   const loadCart = async () => {
     try {
+      setLoading(true);
       const res = await getCart(); // returns { items: [...] }
-      setItems(res.data?.items || []); // use items array
+      setItems(res.data?.items || []);
     } catch (err) {
       console.error("Error fetching cart:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,34 +27,83 @@ function Cart() {
   const handleRemove = async (itemId) => {
     try {
       await removeFromCart(itemId);
-      loadCart();
+      await loadCart();
+      await refreshCartCount();
     } catch (err) {
       console.error("Error removing item:", err);
     }
   };
 
+  const totals = useMemo(() => {
+    const subtotal = items.reduce((sum, it) => {
+      const price = Number(it?.itemId?.price) || 0;
+      const qty = Number(it?.quantity) || 1;
+      return sum + price * qty;
+    }, 0);
+    return { subtotal };
+  }, [items]);
+
   return (
     <div className="container mt-4">
-      <h2>Your Cart</h2>
-      {items.length === 0 ? (
-        <p>No items in cart</p>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2 className="mb-0">Your Cart</h2>
+        <button className="btn btn-outline-secondary" onClick={loadCart} disabled={loading}>
+          {loading ? "Loading…" : "Refresh"}
+        </button>
+      </div>
+
+      {loading && <div className="alert alert-secondary">Loading cart…</div>}
+
+      {!loading && items.length === 0 ? (
+        <div className="alert alert-info">No items in cart</div>
       ) : (
-        <ul className="list-group">
-          {items.map((c) => (
-            <li
-              key={c.itemId?._id || c.itemId} // handle populated or plain ObjectId
-              className="list-group-item d-flex justify-content-between align-items-center"
-            >
-              {c.itemId?.name || "Unknown"} - ₹{c.itemId?.price ?? "-"}
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={() => handleRemove(c.itemId?._id || c.itemId)}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="row">
+          <div className="col-12 col-lg-8">
+            <ul className="list-group mb-3">
+              {items.map((c) => {
+                const id = c.itemId?._id || c.itemId;
+                const name = c.itemId?.name || "Unknown";
+                const price = Number(c.itemId?.price) || 0;
+                const qty = Number(c.quantity) || 1;
+                return (
+                  <li
+                    key={id}
+                    className="list-group-item d-flex justify-content-between align-items-center"
+                  >
+                    <div>
+                      <div className="fw-semibold">{name}</div>
+                      <small className="text-muted">₹{price} × {qty}</small>
+                    </div>
+                    <div className="d-flex align-items-center">
+                      <div className="me-3 fw-semibold">₹{(price * qty).toFixed(2)}</div>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleRemove(id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="col-12 col-lg-4">
+            <div className="card shadow-sm">
+              <div className="card-body">
+                <h5 className="card-title">Summary</h5>
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Subtotal</span>
+                  <span className="fw-semibold">₹{totals.subtotal.toFixed(2)}</span>
+                </div>
+                <button className="btn btn-primary w-100" disabled>
+                  Checkout (Coming soon)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
