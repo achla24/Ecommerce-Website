@@ -1,8 +1,11 @@
-// src/services/api.js
 import axios from 'axios';
 
+// The base URL is now dynamically set from the Vercel environment variable.
+// We use a fallback to 'http://localhost:5000/api' for local development.
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api', // backend base URL
+  baseURL: API_BASE_URL,
 });
 
 // Attach token automatically if present
@@ -23,14 +26,6 @@ export const login = (data) => API.post('/auth/login', data);
 export const getItems = (params) => API.get('/items', { params });
 
 // Cart
-// export const addToCart = (itemId) => {
-//     return API.post('/cart/add', { itemId , quantity: 1 });
-// };
-// export const getCart = () => API.get('/cart');
-// export const removeFromCart = (itemId) => API.post('/cart/remove', { itemId });
-
 export const addToCart = (itemId) => API.post('/cart/add', { itemId, quantity: 1 });
 export const getCart = () => API.get('/cart/me');
 export const removeFromCart = (itemId) => API.delete(`/cart/remove/${itemId}`);
-
-
