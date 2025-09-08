@@ -116,4 +116,23 @@ DELETE /api/cart/remove/:itemId – Remove item
 
 Use JWT in headers:
 
-Authorization: Bearer <your_token>
+Authorization: Bearer <your_token> 
+
+🖥 Backend Deployment
+
+🚀 Platform: Render
+
+🌐 Live URL: https://ecommerce-website-5il4.onrender.com/
+
+🔑 Environment Variables:
+
+MONGO_URI – mongodb+srv://<db_username>:<db_password>@cluster0.uemhadh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+
+JWT_SECRET – Secret key for JWT authentication
+
+PORT – 10000
+
+💻 Frontend Deployment
+🚀 Platform: Vercel
+
+🌐 Live URL: https://ecommerce-website-beige-mu.vercel.app/
